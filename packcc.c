@@ -30,9 +30,6 @@
  */
 
 #ifdef _MSC_VER
-#define _CRT_SECURE_NO_WARNINGS
-#define snprintf _snprintf
-#define unlink _unlink
 #ifdef _DEBUG
 #define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
@@ -416,9 +413,9 @@ static const char *escape_character(char ch, char (*buf)[5]) {
     case '\"':  strncpy(*buf, "\\\"", 5); break;
     default:
         if (ch >= '\x20' && ch < '\x7f')
-            snprintf(*buf, 5, "%c", ch);
+            _snprintf(*buf, 5, "%c", ch);
         else
-            snprintf(*buf, 5, "\\x%02x", (unsigned)ch);
+            _snprintf(*buf, 5, "\\x%02x", (unsigned)ch);
     }
     (*buf)[4] = '\0';
     return *buf;
@@ -586,7 +583,7 @@ static void write_code_block(FILE *stream, const char *ptr, size_t len, int inde
 }
 
 static const char *extract_filename(const char *path) {
-    int i, n = strlen(path);
+    size_t i, n = strlen(path);
     for (i = n - 1; i >= 0; i--) {
         if (path[i] == '/' || path[i] == '\\' || path[i] == ':') break;
     }
@@ -594,7 +591,7 @@ static const char *extract_filename(const char *path) {
 }
 
 static const char *extract_fileext(const char *path) {
-    int i, n = strlen(path);
+    size_t i, n = strlen(path);
     for (i = n - 1; i >= 0; i--) {
         if (path[i] == '/' || path[i] == '\\' || path[i] == ':') break;
         if (path[i] == '.') return path + i;
@@ -604,8 +601,8 @@ static const char *extract_fileext(const char *path) {
 
 static char *replace_fileext(const char *path, const char *ext) {
     const char *p = extract_fileext(path);
-    int m = p - path;
-    int n = strlen(ext);
+    size_t m = p - path;
+    size_t n = strlen(ext);
     char *s = (char *)malloc_e(m + n + 2);
     memcpy(s, path, m);
     s[m] = '.';
@@ -614,8 +611,8 @@ static char *replace_fileext(const char *path, const char *ext) {
 }
 
 static char *add_fileext(const char *path, const char *ext) {
-    int m = strlen(path);
-    int n = strlen(ext);
+    size_t m = strlen(path);
+    size_t n = strlen(ext);
     char *s = (char *)malloc_e(m + n + 2);
     memcpy(s, path, m);
     s[m] = '.';
@@ -869,8 +866,8 @@ static void destroy_context(context_t *ctx) {
     free(ctx->atype);
     free(ctx->vtype);
     free(ctx->hid);
-    fclose(ctx->hfile); if (ctx->errnum) unlink(ctx->hname);
-    fclose(ctx->sfile); if (ctx->errnum) unlink(ctx->sname);
+    fclose(ctx->hfile); if (ctx->errnum) _unlink(ctx->hname);
+    fclose(ctx->sfile); if (ctx->errnum) _unlink(ctx->sname);
     fclose(ctx->ifile);
     free(ctx->hname);
     free(ctx->sname);
@@ -921,7 +918,7 @@ static void link_references(context_t *ctx, node_t *node) {
     case NODE_REFERENCE:
         node->data.reference.rule = lookup_rulehash(ctx, node->data.reference.name);
         if (node->data.reference.rule == NULL) {
-            print_error("%s:%d:%d: No definition of rule '%s'\n",
+            print_error("%s(%d): %d: No definition of rule '%s'\n",
                 ctx->iname, node->data.reference.line + 1, node->data.reference.col + 1, node->data.reference.name);
             ctx->errnum++;
         }
@@ -1314,8 +1311,8 @@ static bool_t match_character_any(context_t *ctx) {
 }
 
 static bool_t match_string(context_t *ctx, const char *str) {
-    int n = strlen(str);
-    if (refill_buffer(ctx, n) >= n) {
+    int n = (int)strlen(str);
+    if ( refill_buffer(ctx, n) >= n ) {
         if (strncmp(ctx->buffer.buf + ctx->bufpos, str, n) == 0) {
             ctx->bufpos += n;
             return TRUE;
@@ -1975,7 +1972,7 @@ static bool_t parse(context_t *ctx) {
                 b = TRUE;
             }
             else if (match_character(ctx, '%')) {
-                print_error("%s:%d:%d: Invalid directive\n", ctx->iname, l + 1, m + 1);
+                print_error("%s(%d): %d: Invalid directive\n", ctx->iname, l + 1, m + 1);
                 ctx->errnum++;
                 match_identifier(ctx);
                 match_spaces(ctx);
@@ -1985,7 +1982,7 @@ static bool_t parse(context_t *ctx) {
                 node_t *n_r = parse_rule(ctx);
                 if (n_r == NULL) {
                     if (b) {
-                        print_error("%s:%d:%d: Illegal rule syntax\n", ctx->iname, l + 1, m + 1);
+                        print_error("%s(%d): %d: Illegal rule syntax\n", ctx->iname, l + 1, m + 1);
                         ctx->errnum++;
                         b = FALSE;
                     }
@@ -2009,12 +2006,12 @@ static bool_t parse(context_t *ctx) {
         }
         for (i = 1; i < ctx->rules.len; i++) {
             if (ctx->rules.buf[i]->data.rule.ref == 0) {
-                print_error("%s:%d:%d: Never used rule '%s'\n",
+                print_error("%s(%d): %d: Never used rule '%s'\n",
                     ctx->iname, ctx->rules.buf[i]->data.rule.line + 1, ctx->rules.buf[i]->data.rule.col + 1, ctx->rules.buf[i]->data.rule.name);
                 ctx->errnum++;
             }
             else if (ctx->rules.buf[i]->data.rule.ref < 0) {
-                print_error("%s:%d:%d: Multiple definition of rule '%s'\n",
+                print_error("%s(%d): %d: Multiple definition of rule '%s'\n",
                     ctx->iname, ctx->rules.buf[i]->data.rule.line + 1, ctx->rules.buf[i]->data.rule.col + 1, ctx->rules.buf[i]->data.rule.name);
                 ctx->errnum++;
             }
@@ -2038,11 +2035,11 @@ static bool_t parse(context_t *ctx) {
 }
 
 static code_reach_t generate_matching_string_code(generate_t *gen, const char *value, int onfail, int indent, bool_t bare) {
-    size_t n = (value != NULL) ? strlen(value) : 0;
+    int n = (value != NULL) ? (int)strlen(value) : 0;
     if (n > 0) {
         char s[5];
         if (n > 1) {
-            size_t i;
+            int i;
             if (!bare) {
                 write_characters(gen->stream, ' ', indent);
                 fputs("{\n", gen->stream);
@@ -3590,6 +3587,31 @@ static bool_t generate(context_t *ctx) {
                         "#define __ (*__pcc_out)\n",
                         stream
                     );
+					fprintf(
+						stream,
+						"#define _rname %s\n",
+						r->name
+					);
+					fprintf(
+						stream,
+						"#define _rcall on_%s\n",
+						r->name
+					);
+					fprintf(
+						stream,
+						"#define _renter enter_%s\n",
+						r->name
+					);
+					fprintf(
+						stream,
+						"#define _rleave leave_%s\n",
+						r->name
+					);
+					fprintf(
+						stream,
+						"#define _ri %d\n",
+						d
+					);
                     for (k = 0; k < v->len; k++) {
                         assert(v->buf[k]->type == NODE_REFERENCE);
                         fprintf(
@@ -3660,7 +3682,11 @@ static bool_t generate(context_t *ctx) {
                         );
                     }
                     fputs(
-                        "#undef __\n"
+						"#undef _ri\n"
+						"#undef _rname\n"
+						"#undef _rcall\n"
+						"#undef _renter\n"
+						"#undef _rleave\n"
                         "#undef auxil\n",
                         stream
                     );
