@@ -2038,21 +2038,28 @@ static code_reach_t generate_matching_string_code(generate_t *gen, const char *v
     int n = (value != NULL) ? (int)strlen(value) : 0;
     if (n > 0) {
         char s[5];
-        if (n > 1) {
+        if (n > 1)
+		{
             int i;
             if (!bare) {
                 write_characters(gen->stream, ' ', indent);
                 fputs("{\n", gen->stream);
                 indent += 4;
             }
+			write_characters(gen->stream, ' ', indent);
+			fputs("if (", gen->stream);
+            fprintf(gen->stream, "pcc_refill_buffer(ctx, %d) < %d\n", n, n);
             write_characters(gen->stream, ' ', indent);
+            fprintf(gen->stream, ") goto L%04d;\n", onfail);
+
+			write_characters(gen->stream, ' ', indent);
             fputs("const char *s = ctx->buffer.buf + ctx->pos;\n", gen->stream);
-            write_characters(gen->stream, ' ', indent);
-            fputs("if (\n", gen->stream);
-            write_characters(gen->stream, ' ', indent + 4);
-            fprintf(gen->stream, "pcc_refill_buffer(ctx, %d) < %d ||\n", n, n);
+			
+			write_characters(gen->stream, ' ', indent);
+			fputs("if (", gen->stream);
             for (i = 0; i < n - 1; i++) {
-                write_characters(gen->stream, ' ', indent + 4);
+				if ( i > 0 )
+					write_characters(gen->stream, ' ', indent + 4);
                 fprintf(gen->stream, "s[%d] != '%s' ||\n", i, escape_character(value[i], &s));
             }
             write_characters(gen->stream, ' ', indent + 4);
@@ -2067,8 +2074,8 @@ static code_reach_t generate_matching_string_code(generate_t *gen, const char *v
                 fputs("}\n", gen->stream);
             }
             return CODE_REACH__BOTH;
-        }
-        else {
+       }
+       else {
             write_characters(gen->stream, ' ', indent);
             fputs("if (\n", gen->stream);
             write_characters(gen->stream, ' ', indent + 4);
@@ -2080,7 +2087,7 @@ static code_reach_t generate_matching_string_code(generate_t *gen, const char *v
             write_characters(gen->stream, ' ', indent);
             fputs("ctx->pos++;\n", gen->stream);
             return CODE_REACH__BOTH;
-        }
+	   }
     }
     else {
         /* no code to generate */
