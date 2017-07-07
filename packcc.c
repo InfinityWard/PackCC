@@ -2823,6 +2823,7 @@ static bool_t generate(context_t *ctx) {
             "    pcc_lr_table_t lrtable;\n"
             "    pcc_lr_stack_t lrstack;\n"
             "    pcc_auxil_t auxil;\n"
+            "    bool aborted;\n"
             "};\n"
             "\n",
             get_prefix(ctx)
@@ -3526,6 +3527,8 @@ static bool_t generate(context_t *ctx) {
         fputs(
             "    int i;\n"
             "    for (i = 0; i < thunks->len; i++) {\n"
+			"        if (ctx->aborted)\n"
+			"            break;\n"
             "        pcc_thunk_t *thunk = thunks->buf[i];\n"
             "        switch (thunk->type) {\n"
             "        case PCC_THUNK_LEAF:\n"
@@ -3789,6 +3792,18 @@ static bool_t generate(context_t *ctx) {
         );
         fprintf(
             stream,
+            "%s%s %s_get_auxil(%s_context_t *ctx) {\n",
+			at, ap ? "" : " ",
+            get_prefix(ctx), get_prefix(ctx)
+        );
+        fputs(
+			"    return ctx->auxil;\n"
+            "}\n"
+            "\n",
+            stream
+        );
+        fprintf(
+            stream,
             "const char* %s_get_buffer(%s_context_t *ctx, int& size, int& pos) {\n",
             get_prefix(ctx), get_prefix(ctx)
         );
@@ -3822,6 +3837,17 @@ static bool_t generate(context_t *ctx) {
             "\n",
             stream
         );
+        fprintf(
+            stream,
+            "void %s_abort_parse(%s_context_t *ctx) {\n",
+            get_prefix(ctx), get_prefix(ctx)
+        );
+        fputs(
+			"    ctx->aborted = true;\n"
+            "}\n"
+            "\n",
+            stream
+        );
 		fprintf(
             stream,
             "int %s_parse(%s_context_t *ctx, %s%s*ret) {\n",
@@ -3829,6 +3855,7 @@ static bool_t generate(context_t *ctx) {
             vt, vp ? "" : " "
         );
         fputs(
+			"    ctx->aborted = false;\n"
             "    pcc_thunk_array_t thunks;\n"
             "    pcc_thunk_array__init(ctx->auxil, &thunks, PCC_ARRAYSIZE);\n",
             stream
@@ -3887,6 +3914,12 @@ static bool_t generate(context_t *ctx) {
         );
         fprintf(
             ctx->hfile,
+            "%s%s %s_get_auxil(%s_context_t *ctx);\n",
+            at, ap ? "" : " ",
+            get_prefix(ctx), get_prefix(ctx)
+        );
+        fprintf(
+            ctx->hfile,
             "const char* %s_get_buffer(%s_context_t *ctx, int& len, int& pos);\n",
             get_prefix(ctx), get_prefix(ctx)
         );
@@ -3898,6 +3931,11 @@ static bool_t generate(context_t *ctx) {
         fprintf(
             ctx->hfile,
             "void %s_commit_buffer(%s_context_t *ctx);\n",
+            get_prefix(ctx), get_prefix(ctx)
+        );
+        fprintf(
+            ctx->hfile,
+            "void %s_abort_parse(%s_context_t *ctx);\n",
             get_prefix(ctx), get_prefix(ctx)
         );
         fprintf(
