@@ -3573,6 +3573,7 @@ static bool_t generate(context_t *ctx) {
                         r->name, d, get_prefix(ctx)
                     );
                     fputs(
+                        "#define ctx (__pcc_ctx)\n"
                         "#define auxil (__pcc_ctx->auxil)\n"
                         "#define __ (*__pcc_out)\n",
                         stream
@@ -3703,7 +3704,8 @@ static bool_t generate(context_t *ctx) {
 						"#undef _rcall\n"
 						"#undef _renter\n"
 						"#undef _rleave\n"
-                        "#undef auxil\n",
+                        "#undef auxil\n"
+                        "#undef ctx\n",
                         stream
                     );
                     fputs(
@@ -3787,6 +3789,41 @@ static bool_t generate(context_t *ctx) {
         );
         fprintf(
             stream,
+            "const char* %s_get_buffer(%s_context_t *ctx, int& size, int& pos) {\n",
+            get_prefix(ctx), get_prefix(ctx)
+        );
+        fputs(
+			"    size = ctx->buffer.len;\n"
+			"    pos  = ctx->pos;\n"
+			"    return ctx->buffer.buf;\n"
+            "}\n"
+            "\n",
+            stream
+        );
+        fprintf(
+            stream,
+            "int %s_refill_buffer(%s_context_t *ctx, int num) {\n",
+            get_prefix(ctx), get_prefix(ctx)
+        );
+        fputs(
+			"    return pcc_refill_buffer(ctx,num);\n"
+            "}\n"
+            "\n",
+            stream
+        );
+        fprintf(
+            stream,
+            "void %s_commit_buffer(%s_context_t *ctx) {\n",
+            get_prefix(ctx), get_prefix(ctx)
+        );
+        fputs(
+			"    pcc_commit_buffer(ctx);\n"
+            "}\n"
+            "\n",
+            stream
+        );
+		fprintf(
+            stream,
             "int %s_parse(%s_context_t *ctx, %s%s*ret) {\n",
             get_prefix(ctx), get_prefix(ctx),
             vt, vp ? "" : " "
@@ -3847,6 +3884,21 @@ static bool_t generate(context_t *ctx) {
             "%s_context_t *%s_create(%s%sauxil);\n",
             get_prefix(ctx), get_prefix(ctx),
             at, ap ? "" : " "
+        );
+        fprintf(
+            ctx->hfile,
+            "const char* %s_get_buffer(%s_context_t *ctx, int& len, int& pos);\n",
+            get_prefix(ctx), get_prefix(ctx)
+        );
+        fprintf(
+            ctx->hfile,
+            "int %s_refill_buffer(%s_context_t *ctx, int num);\n",
+            get_prefix(ctx), get_prefix(ctx)
+        );
+        fprintf(
+            ctx->hfile,
+            "void %s_commit_buffer(%s_context_t *ctx);\n",
+            get_prefix(ctx), get_prefix(ctx)
         );
         fprintf(
             ctx->hfile,
