@@ -2637,9 +2637,14 @@ static bool_t generate(context_t *ctx) {
         );
         fprintf(
             stream,
-            "typedef %s%spcc_auxil_t;\n"
+            "typedef %s%s pcc_auxil_t;\n"
             "\n",
             at, ap ? "" : " "
+        );
+        fprintf(
+            stream,
+            "typedef pcc_context_tag pcc_context_t;\n"
+            "\n"
         );
         fputs(
             "typedef struct pcc_value_table_tag {\n"
@@ -2682,9 +2687,8 @@ static bool_t generate(context_t *ctx) {
         );
         fprintf(
             stream,
-            "typedef void (*pcc_action_t)(%s_context_t *, pcc_thunk_t *, pcc_value_t *);\n"
-            "\n",
-            get_prefix(ctx)
+            "typedef void (*pcc_action_t)(pcc_context_t*, pcc_thunk_t *, pcc_value_t *);\n"
+            "\n"
         );
         fputs(
             "typedef enum pcc_thunk_type_tag {\n"
@@ -2753,9 +2757,8 @@ static bool_t generate(context_t *ctx) {
         );
         fprintf(
             stream,
-            "typedef pcc_thunk_chunk_t *(*pcc_rule_t)(%s_context_t *);\n"
-            "\n",
-            get_prefix(ctx)
+            "typedef pcc_thunk_chunk_t *(*pcc_rule_t)(pcc_context_t *);\n"
+            "\n"
         );
         fputs(
             "typedef struct pcc_rule_set_tag {\n"
@@ -2817,7 +2820,7 @@ static bool_t generate(context_t *ctx) {
         );
         fprintf(
             stream,
-            "struct %s_context_tag {\n"
+            "struct pcc_context_tag {\n"
             "    int pos;\n"
             "    pcc_char_array_t buffer;\n"
             "    pcc_lr_table_t lrtable;\n"
@@ -2825,8 +2828,7 @@ static bool_t generate(context_t *ctx) {
             "    pcc_auxil_t auxil;\n"
             "    bool aborted;\n"
             "};\n"
-            "\n",
-            get_prefix(ctx)
+            "\n"
         );
         fputs(
             "#ifndef PCC_ERROR\n"
@@ -3337,9 +3339,8 @@ static bool_t generate(context_t *ctx) {
         );
         fprintf(
             stream,
-            "static %s_context_t *pcc_context__create(pcc_auxil_t auxil) {\n"
-            "    %s_context_t *ctx = (%s_context_t *)PCC_MALLOC(auxil, sizeof(%s_context_t));\n",
-            get_prefix(ctx), get_prefix(ctx), get_prefix(ctx), get_prefix(ctx)
+            "static pcc_context_t *pcc_context__create(pcc_auxil_t auxil) {\n"
+            "    pcc_context_t *ctx = (pcc_context_t *)PCC_MALLOC(auxil, sizeof(pcc_context_t));\n"
         );
         fputs(
             "    ctx->pos = 0;\n"
@@ -3354,8 +3355,7 @@ static bool_t generate(context_t *ctx) {
         );
         fprintf(
             stream,
-            "static void pcc_context__destroy(%s_context_t *ctx) {\n",
-            get_prefix(ctx)
+            "static void pcc_context__destroy(pcc_context_t *ctx) {\n"
         );
         fputs(
             "    if (ctx == NULL) return;\n"
@@ -3369,8 +3369,7 @@ static bool_t generate(context_t *ctx) {
         );
         fprintf(
             stream,
-            "static int pcc_refill_buffer(%s_context_t *ctx, int num) {\n",
-            get_prefix(ctx)
+            "static int pcc_refill_buffer(pcc_context_t *ctx, int num) {\n"
         );
         fputs(
             "    int n, c;\n"
@@ -3388,8 +3387,7 @@ static bool_t generate(context_t *ctx) {
         );
         fprintf(
             stream,
-            "static void pcc_commit_buffer(%s_context_t *ctx) {\n",
-            get_prefix(ctx)
+            "static void pcc_commit_buffer(pcc_context_t *ctx) {\n"
         );
         fputs(
             "    memmove(ctx->buffer.buf, ctx->buffer.buf + ctx->pos, ctx->buffer.len - ctx->pos);\n"
@@ -3402,8 +3400,7 @@ static bool_t generate(context_t *ctx) {
         );
         fprintf(
             stream,
-            "static const char *pcc_get_capture_string(%s_context_t *ctx, const pcc_capture_t *capt) {\n",
-            get_prefix(ctx)
+            "static const char *pcc_get_capture_string(pcc_context_t *ctx, const pcc_capture_t *capt) {\n"
         );
         fputs(
             "    if (capt->string == NULL)\n"
@@ -3416,8 +3413,7 @@ static bool_t generate(context_t *ctx) {
         );
         fprintf(
             stream,
-            "static pcc_bool_t pcc_apply_rule(%s_context_t *ctx, pcc_rule_t rule, pcc_thunk_array_t *thunks, pcc_value_t *value) {\n",
-            get_prefix(ctx)
+            "static pcc_bool_t pcc_apply_rule(pcc_context_t *ctx, pcc_rule_t rule, pcc_thunk_array_t *thunks, pcc_value_t *value) {\n"
         );
         fputs(
             "    static pcc_value_t null;\n"
@@ -3521,8 +3517,7 @@ static bool_t generate(context_t *ctx) {
         );
         fprintf(
             stream,
-            "static void pcc_do_action(%s_context_t *ctx, const pcc_thunk_array_t *thunks, pcc_value_t *value) {\n",
-            get_prefix(ctx)
+            "static void pcc_do_action(pcc_context_t *ctx, const pcc_thunk_array_t *thunks, pcc_value_t *value) {\n"
         );
         fputs(
             "    int i;\n"
@@ -3572,8 +3567,8 @@ static bool_t generate(context_t *ctx) {
                     }
                     fprintf(
                         stream,
-                        "static void pcc_action_%s_%d(%s_context_t *__pcc_ctx, pcc_thunk_t *__pcc_in, pcc_value_t *__pcc_out) {\n",
-                        r->name, d, get_prefix(ctx)
+                        "static void pcc_action_%s_%d(pcc_context_t *__pcc_ctx, pcc_thunk_t *__pcc_in, pcc_value_t *__pcc_out) {\n",
+                        r->name, d
                     );
                     fputs(
                         "#define ctx (__pcc_ctx)\n"
@@ -3724,8 +3719,8 @@ static bool_t generate(context_t *ctx) {
             for (i = 0; i < ctx->rules.len; i++) {
                 fprintf(
                     stream,
-                    "static pcc_thunk_chunk_t *pcc_evaluate_rule_%s(%s_context_t *ctx);\n",
-                    ctx->rules.buf[i]->data.rule.name, get_prefix(ctx)
+                    "static pcc_thunk_chunk_t *pcc_evaluate_rule_%s(pcc_context_t *ctx);\n",
+                    ctx->rules.buf[i]->data.rule.name
                 );
             }
             fputs(
@@ -3740,8 +3735,8 @@ static bool_t generate(context_t *ctx) {
                 g.label = 0;
                 fprintf(
                     stream,
-                    "static pcc_thunk_chunk_t *pcc_evaluate_rule_%s(%s_context_t *ctx) {\n",
-                    ctx->rules.buf[i]->data.rule.name, get_prefix(ctx)
+                    "static pcc_thunk_chunk_t *pcc_evaluate_rule_%s(pcc_context_t *ctx) {\n",
+                    ctx->rules.buf[i]->data.rule.name
                 );
                 fputs(
                     "    pcc_thunk_chunk_t *chunk = pcc_thunk_chunk__create(ctx->auxil);\n"
@@ -3780,85 +3775,56 @@ static bool_t generate(context_t *ctx) {
         }
         fprintf(
             stream,
-            "%s_context_t *%s_create(%s%sauxil) {\n",
-            get_prefix(ctx), get_prefix(ctx),
-            at, ap ? "" : " "
-        );
-        fputs(
+			"pcc_%s::context_t* pcc_%s::create(auxil_t auxil) {\n"
             "    return pcc_context__create(auxil);\n"
-            "}\n"
-            "\n",
-            stream
+            "}\n\n",
+            get_prefix(ctx), get_prefix(ctx)
         );
         fprintf(
             stream,
-            "%s%s %s_get_auxil(%s_context_t *ctx) {\n",
-			at, ap ? "" : " ",
-            get_prefix(ctx), get_prefix(ctx)
-        );
-        fputs(
+            "pcc_%s::auxil_t pcc_%s::get_auxil(context_t* ctx) {\n"
 			"    return ctx->auxil;\n"
-            "}\n"
-            "\n",
-            stream
+            "}\n\n",
+            get_prefix(ctx), get_prefix(ctx)
         );
         fprintf(
             stream,
-            "const char* %s_get_buffer(%s_context_t *ctx, int& size, int& pos) {\n",
-            get_prefix(ctx), get_prefix(ctx)
-        );
-        fputs(
-			"    size = ctx->buffer.len;\n"
-			"    pos  = ctx->pos;\n"
+            "const char* pcc_%s::get_buffer(context_t* ctx, int* size, int* pos) {\n"
+			"    if( size ) *size = ctx->buffer.len;\n"
+			"    if( pos )  *pos  = ctx->pos;\n"
 			"    return ctx->buffer.buf;\n"
-            "}\n"
-            "\n",
-            stream
+            "}\n\n",
+            get_prefix(ctx)
         );
         fprintf(
             stream,
-            "int %s_refill_buffer(%s_context_t *ctx, int num) {\n",
-            get_prefix(ctx), get_prefix(ctx)
-        );
-        fputs(
+            "int pcc_%s::refill_buffer(context_t* ctx, int num) {\n"
 			"    return pcc_refill_buffer(ctx,num);\n"
-            "}\n"
-            "\n",
-            stream
+            "}\n\n",
+            get_prefix(ctx)
         );
         fprintf(
             stream,
-            "void %s_commit_buffer(%s_context_t *ctx) {\n",
-            get_prefix(ctx), get_prefix(ctx)
-        );
-        fputs(
+            "void pcc_%s::commit_buffer(context_t* ctx) {\n"
 			"    pcc_commit_buffer(ctx);\n"
-            "}\n"
-            "\n",
-            stream
+            "}\n\n",
+            get_prefix(ctx)
         );
         fprintf(
             stream,
-            "void %s_abort_parse(%s_context_t *ctx) {\n",
-            get_prefix(ctx), get_prefix(ctx)
-        );
-        fputs(
+            "void pcc_%s::abort_parse(context_t* ctx) {\n"
 			"    ctx->aborted = true;\n"
-            "}\n"
-            "\n",
-            stream
+            "}\n\n",
+            get_prefix(ctx)
         );
 		fprintf(
             stream,
-            "int %s_parse(%s_context_t *ctx, %s%s*ret) {\n",
-            get_prefix(ctx), get_prefix(ctx),
-            vt, vp ? "" : " "
-        );
-        fputs(
+            "int pcc_%s::parse(context_t* ctx, %s%s* ret) {\n"
 			"    ctx->aborted = false;\n"
             "    pcc_thunk_array_t thunks;\n"
             "    pcc_thunk_array__init(ctx->auxil, &thunks, PCC_ARRAYSIZE);\n",
-            stream
+            get_prefix(ctx),
+            vt, vp ? "" : " "
         );
         if (ctx->rules.len > 0) {
             fprintf(
@@ -3883,78 +3849,31 @@ static bool_t generate(context_t *ctx) {
         );
         fprintf(
             stream,
-            "void %s_destroy(%s_context_t *ctx) {\n",
-            get_prefix(ctx), get_prefix(ctx)
-        );
-        fputs(
+            "void pcc_%s::destroy(context_t* ctx) {\n"
             "    pcc_context__destroy(ctx);\n"
-            "}\n",
-            stream
+            "}\n\n",
+            get_prefix(ctx)
         );
     }
     {
-        fputs(
-            "#ifdef __cplusplus\n"
-            "extern \"C\" {\n"
-            "#endif\n"
-            "\n",
-            ctx->hfile
-        );
         fprintf(
             ctx->hfile,
-            "typedef struct %s_context_tag %s_context_t;\n"
-            "\n",
-            get_prefix(ctx), get_prefix(ctx)
-        );
-        fprintf(
-            ctx->hfile,
-            "%s_context_t *%s_create(%s%sauxil);\n",
-            get_prefix(ctx), get_prefix(ctx),
-            at, ap ? "" : " "
-        );
-        fprintf(
-            ctx->hfile,
-            "%s%s %s_get_auxil(%s_context_t *ctx);\n",
-            at, ap ? "" : " ",
-            get_prefix(ctx), get_prefix(ctx)
-        );
-        fprintf(
-            ctx->hfile,
-            "const char* %s_get_buffer(%s_context_t *ctx, int& len, int& pos);\n",
-            get_prefix(ctx), get_prefix(ctx)
-        );
-        fprintf(
-            ctx->hfile,
-            "int %s_refill_buffer(%s_context_t *ctx, int num);\n",
-            get_prefix(ctx), get_prefix(ctx)
-        );
-        fprintf(
-            ctx->hfile,
-            "void %s_commit_buffer(%s_context_t *ctx);\n",
-            get_prefix(ctx), get_prefix(ctx)
-        );
-        fprintf(
-            ctx->hfile,
-            "void %s_abort_parse(%s_context_t *ctx);\n",
-            get_prefix(ctx), get_prefix(ctx)
-        );
-        fprintf(
-            ctx->hfile,
-            "int %s_parse(%s_context_t *ctx, %s%s*ret);\n",
-            get_prefix(ctx), get_prefix(ctx),
-            vt, vp ? "" : " "
-        );
-        fprintf(
-            ctx->hfile,
-            "void %s_destroy(%s_context_t *ctx);\n",
-            get_prefix(ctx), get_prefix(ctx)
-        );
-        fputs(
-            "\n"
-            "#ifdef __cplusplus\n"
-            "}\n"
-            "#endif\n",
-            ctx->hfile
+			"struct pcc_%s\n"
+			"{\n\n"
+            "\ttypedef struct pcc_context_tag context_t;\n"
+            "\ttypedef %s%s auxil_t;\n\n"
+            "\tstatic context_t*   create        ( auxil_t               );\n"
+            "\tstatic auxil_t      get_auxil     ( context_t*            );\n"
+            "\tstatic const char*  get_buffer    ( context_t*, int*, int*);\n"
+            "\tstatic int          refill_buffer ( context_t*, int       );\n"
+            "\tstatic void         commit_buffer ( context_t*            );\n"
+            "\tstatic void         abort_parse   ( context_t*            );\n"
+            "\tstatic int          parse         ( context_t*, %s%s*     );\n"
+            "\tstatic void         destroy       ( context_t*            );\n"
+			 "\n};\n\n",
+            get_prefix(ctx),
+			at, ap ? "" : " ",
+			vt, vp ? "" : " "
         );
         fprintf(
             ctx->hfile,
