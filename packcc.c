@@ -2616,7 +2616,8 @@ static bool_t generate(context_t *ctx) {
             "} pcc_bool_t;\n"
             "\n"
             "typedef struct pcc_char_array_tag {\n"
-            "    char *buf;\n"
+            "    typedef char item_t;\n"
+            "    item_t *buf;\n"
             "    int max;\n"
             "    int len;\n"
             "} pcc_char_array_t;\n"
@@ -2642,13 +2643,15 @@ static bool_t generate(context_t *ctx) {
         );
         fputs(
             "typedef struct pcc_value_table_tag {\n"
-            "    pcc_value_t *buf;\n"
+            "    typedef pcc_value_t item_t;\n"
+            "    item_t *buf;\n"
             "    int max;\n"
             "    int len;\n"
             "} pcc_value_table_t;\n"
             "\n"
             "typedef struct pcc_value_refer_table_tag {\n"
-            "    pcc_value_t **buf;\n"
+            "    typedef pcc_value_t* item_t;\n"
+            "    item_t *buf;\n"
             "    int max;\n"
             "    int len;\n"
             "} pcc_value_refer_table_t;\n"
@@ -2659,13 +2662,15 @@ static bool_t generate(context_t *ctx) {
             "} pcc_capture_t;\n"
             "\n"
             "typedef struct pcc_capture_table_tag {\n"
-            "    pcc_capture_t *buf;\n"
+            "    typedef pcc_capture_t item_t;\n"
+            "    item_t *buf;\n"
             "    int max;\n"
             "    int len;\n"
             "} pcc_capture_table_t;\n"
             "\n"
             "typedef struct pcc_capture_const_table_tag {\n"
-            "    const pcc_capture_t **buf;\n"
+            "    typedef const pcc_capture_t* item_t;\n"
+            "    item_t *buf;\n"
             "    int max;\n"
             "    int len;\n"
             "} pcc_capture_const_table_t;\n"
@@ -2710,7 +2715,8 @@ static bool_t generate(context_t *ctx) {
             "};\n"
             "\n"
             "struct pcc_thunk_array_tag {\n"
-            "    pcc_thunk_t **buf;\n"
+			"    typedef pcc_thunk_t* item_t;\n"
+            "    item_t *buf;\n"
             "    int max;\n"
             "    int len;\n"
             "};\n"
@@ -2753,7 +2759,8 @@ static bool_t generate(context_t *ctx) {
         );
         fputs(
             "typedef struct pcc_rule_set_tag {\n"
-            "    pcc_rule_t *buf;\n"
+			"    typedef pcc_rule_t item_t;\n"
+            "    item_t *buf;\n"
             "    int max;\n"
             "    int len;\n"
             "} pcc_rule_set_t;\n"
@@ -2773,7 +2780,8 @@ static bool_t generate(context_t *ctx) {
             "} pcc_lr_memo_t;\n"
             "\n"
             "typedef struct pcc_lr_memo_map_tag {\n"
-            "    pcc_lr_memo_t *buf;\n"
+			"    typedef pcc_lr_memo_t item_t;\n"
+            "    item_t *buf;\n"
             "    int max;\n"
             "    int len;\n"
             "} pcc_lr_memo_map_t;\n"
@@ -2786,7 +2794,8 @@ static bool_t generate(context_t *ctx) {
             "} pcc_lr_table_entry_t;\n"
             "\n"
             "typedef struct pcc_lr_table_tag {\n"
-            "    pcc_lr_table_entry_t **buf;\n"
+			"    typedef pcc_lr_table_entry_t* item_t;\n"
+            "    item_t *buf;\n"
             "    int max;\n"
             "    int len;\n"
             "} pcc_lr_table_t;\n"
@@ -2798,7 +2807,8 @@ static bool_t generate(context_t *ctx) {
             "};\n"
             "\n"
             "typedef struct pcc_lr_stack_tag {\n"
-            "    pcc_lr_entry_t **buf;\n"
+			"    typedef pcc_lr_entry_t* item_t;\n"
+            "    item_t *buf;\n"
             "    int max;\n"
             "    int len;\n"
             "} pcc_lr_stack_t;\n"
@@ -2876,6 +2886,15 @@ static bool_t generate(context_t *ctx) {
             "    return s;\n"
             "}\n"
             "\n"
+			"template< typename T >\n"
+            "static void pcc_realloc_buffer_e(T* t, int len) {\n"
+			"    int _max = t->max;\n"
+            "    if (t->max <= 0) t->max = 1;\n"
+            "    while (t->max < len) t->max <<= 1;\n"
+			"    if( t->max != _max )\n"
+			"        t->buf = (T::item_t*) PCC_REALLOC(auxil, (void*)t->buf, t->max * sizeof(T::item_t));\n"
+            "}\n"
+            "\n"
             "static void pcc_char_array__init(pcc_auxil_t auxil, pcc_char_array_t *array, int max) {\n"
             "    array->len = 0;\n"
             "    array->max = max;\n"
@@ -2883,9 +2902,7 @@ static bool_t generate(context_t *ctx) {
             "}\n"
             "\n"
             "static void pcc_char_array__add(pcc_auxil_t auxil, pcc_char_array_t *array, char ch) {\n"
-            "    if (array->max <= 0) array->max = 1;\n"
-            "    while (array->max <= array->len) array->max <<= 1;\n"
-            "    array->buf = (char *)PCC_REALLOC(auxil, array->buf, array->max);\n"
+            "    pcc_realloc_buffer_e( array, array->len+1 );\n"
             "    array->buf[array->len++] = ch;\n"
             "}\n"
             "\n"
@@ -2900,11 +2917,7 @@ static bool_t generate(context_t *ctx) {
             "}\n"
             "\n"
             "static void pcc_value_table__resize(pcc_auxil_t auxil, pcc_value_table_t *table, int len) {\n"
-            "    if (table->max < len) {\n"
-            "        if (table->max <= 0) table->max = 1;\n"
-            "        while (table->max < len) table->max <<= 1;\n"
-            "        table->buf = (pcc_value_t *)PCC_REALLOC(auxil, table->buf, table->max * sizeof(pcc_value_t));\n"
-            "    }\n"
+            "    pcc_realloc_buffer_e( table, len );\n"
             "    table->len = len;\n"
             "}\n"
             "\n"
@@ -2920,11 +2933,7 @@ static bool_t generate(context_t *ctx) {
             "\n"
             "static void pcc_value_refer_table__resize(pcc_auxil_t auxil, pcc_value_refer_table_t *table, int len) {\n"
             "    int i;\n"
-            "    if (table->max < len) {\n"
-            "        if (table->max <= 0) table->max = 1;\n"
-            "        while (table->max < len) table->max <<= 1;\n"
-            "        table->buf = (pcc_value_t **)PCC_REALLOC(auxil, table->buf, table->max * sizeof(pcc_value_t *));\n"
-            "    }\n"
+			"    pcc_realloc_buffer_e(table,len);\n"
             "    for (i = table->len; i < len; i++) table->buf[i] = NULL;\n"
             "    table->len = len;\n"
             "}\n"
@@ -2941,12 +2950,9 @@ static bool_t generate(context_t *ctx) {
             "\n"
             "static void pcc_capture_table__resize(pcc_auxil_t auxil, pcc_capture_table_t *table, int len) {\n"
             "    int i;\n"
-            "    for (i = table->len - 1; i >= len; i--) PCC_FREE(auxil, table->buf[i].string);\n"
-            "    if (table->max < len) {\n"
-            "        if (table->max <= 0) table->max = 1;\n"
-            "        while (table->max < len) table->max <<= 1;\n"
-            "        table->buf = (pcc_capture_t *)PCC_REALLOC(auxil, table->buf, table->max * sizeof(pcc_capture_t));\n"
-            "    }\n"
+            "    for (i = table->len - 1; i >= len; i--)\n"
+            "        PCC_FREE(auxil, table->buf[i].string);\n"
+            "    pcc_realloc_buffer_e(table,len);\n"
             "    for (i = table->len; i < len; i++) {\n"
             "        table->buf[i].range.start = 0;\n"
             "        table->buf[i].range.end = 0;\n"
@@ -2969,11 +2975,7 @@ static bool_t generate(context_t *ctx) {
             "\n"
             "static void pcc_capture_const_table__resize(pcc_auxil_t auxil, pcc_capture_const_table_t *table, int len) {\n"
             "    int i;\n"
-            "    if (table->max < len) {\n"
-            "        if (table->max <= 0) table->max = 1;\n"
-            "        while (table->max < len) table->max <<= 1;\n"
-            "        table->buf = (const pcc_capture_t **)PCC_REALLOC(auxil, (pcc_capture_t **)table->buf, table->max * sizeof(const pcc_capture_t *));\n"
-            "    }\n"
+            "    pcc_realloc_buffer_e(table,len);\n"
             "    for (i = table->len; i < len; i++) table->buf[i] = NULL;\n"
             "    table->len = len;\n"
             "}\n"
@@ -3027,9 +3029,7 @@ static bool_t generate(context_t *ctx) {
             "}\n"
             "\n"
             "static void pcc_thunk_array__add(pcc_auxil_t auxil, pcc_thunk_array_t *array, pcc_thunk_t *thunk) {\n"
-            "    if (array->max <= 0) array->max = 1;\n"
-            "    while (array->max <= array->len) array->max <<= 1;\n"
-            "    array->buf = (pcc_thunk_t **)PCC_REALLOC(auxil, array->buf, array->max * sizeof(pcc_thunk_t *));\n"
+            "    pcc_realloc_buffer_e(array,array->len+1);\n"
             "    array->buf[array->len++] = thunk;\n"
             "}\n"
             "\n"
@@ -3081,9 +3081,7 @@ static bool_t generate(context_t *ctx) {
             "static pcc_bool_t pcc_rule_set__add(pcc_auxil_t auxil, pcc_rule_set_t *set, pcc_rule_t rule) {\n"
             "    int i = pcc_rule_set__index(auxil, set, rule);\n"
             "    if (i >= 0) return PCC_FALSE;\n"
-            "    if (set->max <= 0) set->max = 1;\n"
-            "    while (set->max <= set->len) set->max <<= 1;\n"
-            "    set->buf = (pcc_rule_t *)PCC_REALLOC(auxil, set->buf, set->max * sizeof(pcc_rule_t));\n"
+            "    pcc_realloc_buffer_e(set,set->len+1);\n"
             "    set->buf[set->len++] = rule;\n"
             "    return PCC_TRUE;\n"
             "}\n"
@@ -3204,9 +3202,7 @@ static bool_t generate(context_t *ctx) {
             "        map->buf[i].answer = answer;\n"
             "    }\n"
             "    else {\n"
-            "        if (map->max <= 0) map->max = 1;\n"
-            "        while (map->max <= map->len) map->max <<= 1;\n"
-            "        map->buf = (pcc_lr_memo_t *)PCC_REALLOC(auxil, map->buf, map->max * sizeof(pcc_lr_memo_t));\n"
+            "        pcc_realloc_buffer_e(map,map->len+1);\n"
             "        map->buf[map->len].rule = rule;\n"
             "        map->buf[map->len].answer = answer;\n"
             "        map->len++;\n"
@@ -3250,11 +3246,7 @@ static bool_t generate(context_t *ctx) {
             "static void pcc_lr_table__resize(pcc_auxil_t auxil, pcc_lr_table_t *table, int len) {\n"
             "    int i;\n"
             "    for (i = table->len - 1; i >= len; i--) pcc_lr_table_entry__destroy(auxil, table->buf[i]);\n"
-            "    if (table->max < len) {\n"
-            "        if (table->max <= 0) table->max = 1;\n"
-            "        while (table->max < len) table->max <<= 1;\n"
-            "        table->buf = (pcc_lr_table_entry_t **)PCC_REALLOC(auxil, table->buf, table->max * sizeof(pcc_lr_table_entry_t *));\n"
-            "    }\n"
+            "    pcc_realloc_buffer_e(table,len);\n"
             "    for (i = table->len; i < len; i++) table->buf[i] = NULL;\n"
             "    table->len = len;\n"
             "}\n"
@@ -3328,9 +3320,7 @@ static bool_t generate(context_t *ctx) {
             "}\n"
             "\n"
             "static void pcc_lr_stack__push(pcc_auxil_t auxil, pcc_lr_stack_t *stack, pcc_lr_entry_t *lr) {\n"
-            "    if (stack->max <= 0) stack->max = 1;\n"
-            "    while (stack->max <= stack->len) stack->max <<= 1;\n"
-            "    stack->buf = (pcc_lr_entry_t **)PCC_REALLOC(auxil, stack->buf, stack->max * sizeof(pcc_lr_entry_t *));\n"
+            "    pcc_realloc_buffer_e(stack,stack->len+1);\n"
             "    stack->buf[stack->len++] = lr;\n"
             "}\n"
             "\n"
@@ -3622,9 +3612,11 @@ static bool_t generate(context_t *ctx) {
                         );
                     }
                     fputs(
-                        "#define _0 pcc_get_capture_string(__pcc_ctx, &__pcc_in->data.leaf.capt0)\n"
-                        "#define _0s ((const)__pcc_in->data.leaf.capt0.range.start)\n"
-                        "#define _0e ((const)__pcc_in->data.leaf.capt0.range.end)\n",
+                        "#define _0   pcc_get_capture_string(__pcc_ctx, &__pcc_in->data.leaf.capt0)\n"
+                        "#define _0s  ((const)__pcc_in->data.leaf.capt0.range.start)\n"
+                        "#define _0e  ((const)__pcc_in->data.leaf.capt0.range.end)\n"
+                        "#define _0sp (__pcc_ctx->buffer.buf + _0s)\n"
+                        "#define _0ep (__pcc_ctx->buffer.buf + _0e)\n",
                         stream
                     );
                     for (k = 0; k < c->len; k++) {
@@ -3637,20 +3629,42 @@ static bool_t generate(context_t *ctx) {
                         );
                         fprintf(
                             stream,
-                            "#define _%ds __pcc_in->data.leaf.capts.buf[%d]->range.start\n",
+                            "#define _%ds (__pcc_in->data.leaf.capts.buf[%d]->range.start)\n",
                             c->buf[k]->data.capture.index + 1,
                             c->buf[k]->data.capture.index
                         );
                         fprintf(
                             stream,
-                            "#define _%de __pcc_in->data.leaf.capts.buf[%d]->range.end\n",
+                            "#define _%de (__pcc_in->data.leaf.capts.buf[%d]->range.end)\n",
                             c->buf[k]->data.capture.index + 1,
                             c->buf[k]->data.capture.index
+                        );
+                        fprintf(
+                            stream,
+                            "#define _%dsp (__pcc_ctx->buffer.buf + _%ds)\n",
+                            c->buf[k]->data.capture.index + 1,
+                            c->buf[k]->data.capture.index + 1
+                        );
+                        fprintf(
+                            stream,
+                            "#define _%dep (__pcc_ctx->buffer.buf + _%de)\n",
+                            c->buf[k]->data.capture.index + 1,
+                            c->buf[k]->data.capture.index + 1
                         );
                     }
                     write_code_block(stream, s, strlen(s), 4);
                     for (k = c->len - 1; k >= 0; k--) {
                         assert(c->buf[k]->type == NODE_CAPTURE);
+                        fprintf(
+                            stream,
+                            "#undef _%dep\n",
+                            c->buf[k]->data.capture.index + 1
+                        );
+                        fprintf(
+                            stream,
+                            "#undef _%dsp\n",
+                            c->buf[k]->data.capture.index + 1
+                        );
                         fprintf(
                             stream,
                             "#undef _%de\n",
@@ -3668,6 +3682,8 @@ static bool_t generate(context_t *ctx) {
                         );
                     }
                     fputs(
+                        "#undef _0ep\n"
+                        "#undef _0sp\n"
                         "#undef _0e\n"
                         "#undef _0s\n"
                         "#undef _0\n",
