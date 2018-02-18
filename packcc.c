@@ -44,11 +44,12 @@
 
 #ifndef _MSC_VER
 #if defined __GNUC__ && defined _WIN32 /* MinGW */
-static size_t strnlen(const char *str, size_t maxlen) {
+static size_t my_strnlen(const char *str, size_t maxlen) {
     size_t i;
     for (i = 0; str[i] && i < maxlen; i++);
     return i;
 }
+#define strnlen my_strnlen
 #else
 #include <unistd.h> /* for strnlen() */
 #endif
